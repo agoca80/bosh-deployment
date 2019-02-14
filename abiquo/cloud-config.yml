@@ -1,0 +1,46 @@
+azs:
+- name: z1
+  cloud_properties:
+    virtualdatacenter: ((abiquo_virtualdatacenter))
+    virtualappliance:  ((abiquo_virtualappliance))
+    foo: z1_foo
+    bar: z1_bar
+
+vm_types:
+- name: default
+  cloud_properties:
+    cpus: 2
+    memory: 1024
+    harddisk: 4096
+
+disk_types:
+- name: default
+  disk_size: 10240
+  cloud_properties:
+    virtualdatacenter: ((abiquo_virtualdatacenter))
+    tier:              ((abiquo_tier))
+
+networks:
+- name: default
+  type: dynamic
+  subnets:
+  - range: 10.60.13.226-10.60.13.252
+    gateway: ((internal_gw))
+    azs:   [ z1 ]
+    dns:   [ 10.60.1.4 , 8.8.8.8 ]
+    cloud_properties:
+      href: ((abiquo_externalnetwork))
+
+compilation:
+  az: z1
+  workers: 2
+  reuse_compilation_vms: true
+  vm_type: default
+  network: default
+
+disk_pools:
+- name: default
+  disk_size: 10_240
+  cloud_properties:
+    virtualdatacenter: ((abiquo_virtualdatacenter))
+    tier:              ((abiquo_tier))

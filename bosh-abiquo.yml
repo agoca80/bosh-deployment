@@ -1,0 +1,97 @@
+# - type: replace
+#   path: /releases/-
+#   value:
+#     name: garden-runc
+#     version: "1.16.3"
+#     url: https://s3.amazonaws.com/bosh-compiled-release-tarballs/garden-runc-1.16.3-ubuntu-xenial-170.9-20181126-235709-948256719-20181126235720.tgz
+#     sha1: 3ffd5f1e336fc1b8bf4457b9b97a5ccf8138997f
+
+# - type: replace
+#   path: /releases/-
+#   value:
+#     name: bosh-abiquo-cpi
+#     version: "40"
+#     url: file:///tmp/bosh-abiquo-cpi
+#     sha1: 723b0f0c92e0be3c5068d31704fd9b383d9e515f
+
+# - type: replace
+#   path: /instance_groups/name=bosh/jobs/-
+#   value:
+#     name: garden
+#     release: garden-runc
+
+# - type: replace
+#   path: /instance_groups/name=bosh/jobs/name=garden/properties?/garden
+#   value:
+#     listen_network: tcp
+#     listen_address: 127.0.0.1:7777
+#     debug_listen_address: 127.0.0.1:17013
+#     allow_host_access: true
+#     destroy_containers_on_start: true # avoids snapshots
+#     default_container_grace_time: 0
+#     graph_cleanup_threshold_in_mb: 0
+
+# - type: replace
+#   path: /instance_groups/name=bosh/jobs/-
+#   value:
+#     name: abiquo_cpi
+#     release: bosh-abiquo-cpi
+
+- type: replace
+  path: /instance_groups/name=bosh/properties/director/cpi_job?
+  value: abiquo_cpi
+
+- type: replace
+  path: /instance_groups/name=bosh/jobs/name=abiquo_cpi/properties
+  value:
+    abiquo:
+      datacenterrepository: ((abiquo_datacenterrepository))
+      endpoint:             ((abiquo_endpoint))
+      username:             ((abiquo_username))
+      password:             ((abiquo_password))
+    agent:
+      mbus: nats://nats:((nats_password))@((internal_ip)):4222
+    ntp: [ 0.pool.ntp.org , 1.pool.ntp.org ]
+    blobstore:
+      address: ((internal_ip))
+      port: 25250
+      provider: dav
+      agent:
+        user: agent
+        password: ((blobstore_agent_password))
+
+- type: replace
+  path: /releases/name=os-conf?
+  value:
+    name: os-conf
+    version: 18
+    url: https://bosh.io/d/github.com/cloudfoundry/os-conf-release?v=18
+    sha1: 78d79f08ff5001cc2a24f572837c7a9c59a0e796
+
+- type: replace
+  path: /instance_groups/name=bosh/jobs/-
+  value:
+    name: disable_agent
+    release: os-conf
+
+- type: replace
+  path: /instance_groups/name=bosh/properties/director/ignore_missing_gateway?
+  value: true
+
+- type: replace
+  path: /instance_groups/name=bosh/properties/compiled_package_cache?
+  value:
+    provider: local
+    options: {blobstore_path: /var/vcap/store/tmp/compiled_package_cache}
+
+- type: replace
+  path: /variables/name=nats_server_tls/options/alternative_names?/-
+  value: "((internal_ip))"
+
+- type: replace
+  path: /variables/name=blobstore_server_tls/options/alternative_names/-
+  value: "((internal_ip))"
+
+# Remove by abiquo cpi to avoid compilation
+# - type: remove
+#   path: /instance_groups/name=bosh/jobs/name=abiquo_cpi?

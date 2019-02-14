@@ -1,0 +1,94 @@
+---
+- type: replace
+  path: /releases/-
+  value:
+    name: bosh-abiquo-cpi
+    version: "0+dev.1"
+    url: file:///tmp/bosh-abiquo-cpi
+    sha1: 6b02cb92c2d540190a105c038981591f3320adc6
+
+- type: replace
+  path: /resource_pools/name=vms/stemcell?
+  value:
+    url: file://((abiquo_stemcell))
+    sha1: 653611310fbc5715386c584fb174ae6f11f3151c
+
+# Configure size
+- type: replace
+  path: /resource_pools/name=vms/cloud_properties?
+  value:
+    cpus: 2
+    memory: 4096
+    harddisk: 10_240
+    virtualappliance:  ((abiquo_virtualappliance))
+    availability_zone: ((az))
+
+# Add CPI job
+- type: replace
+  path: /instance_groups/name=bosh/jobs/-
+  value: &cpi_job
+    name: abiquo_cpi
+    release: bosh-abiquo-cpi
+    properties:
+      agent:
+        mbus: nats://nats:((nats_password))@((internal_ip)):4222
+      ntp:
+      - 0.pool.ntp.org
+      - 1.pool.ntp.org
+      blobstore:
+        address: ((internal_ip))
+        port: 25250
+        provider: dav
+        agent:
+          user: agent
+          password: ((blobstore_agent_password))
+
+- type: replace
+  path: /instance_groups/name=bosh/properties/director/cpi_job?
+  value: abiquo_cpi
+
+- type: replace
+  path: /cloud_provider/template?
+  value: *cpi_job
+
+- type: replace
+  path: /instance_groups/name=bosh/properties/abiquo?
+  value: &cpi_conf
+    datacenterrepository: ((abiquo_datacenterrepository))
+    endpoint:             ((abiquo_endpoint))
+    username:             ((abiquo_username))
+    password:             ((abiquo_password))
+
+- type: replace
+  path: /cloud_provider/properties/abiquo?
+  value: 
+    datacenterrepository: ((abiquo_datacenterrepository))
+    endpoint:             ((abiquo_endpoint))
+    username:             ((abiquo_username))
+    password:             ((abiquo_password))
+
+- type: replace
+  path: /instance_groups/name=bosh/networks/name=default/default?
+  value: [dns, gateway]
+
+- type: replace
+  path: /networks/-
+  value:
+    name: default
+    type: manual
+    subnets:
+    - range: ((internal_cidr))
+      gateway: ((internal_gw))
+      azs: [z1,z2,z3]
+      dns:   [ 10.60.1.4 , 8.8.8.8 ]
+      cloud_properties:
+        href: ((abiquo_externalnetwork))
+
+- type: replace
+  path: /disk_pools/name=disks
+  value:
+    name: disks
+    disk_size: 16_384
+    cloud_properties:
+      virtualdatacenter:  ((abiquo_virtualdatacenter))
+      tier:               ((abiquo_tier))
